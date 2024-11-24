@@ -16,3 +16,4 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/un-lock/{hashId}', [App\Http\Controllers\ApiController::class, 'unLock']);

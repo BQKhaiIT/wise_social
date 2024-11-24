@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Notification extends Model
 {
 
-    const IS_VIEW_UNVIEWD = 1;
-    const IS_VIEW_VIEWD = 2;
+    const UNVIEWED = 1;
+    const VIEWED = 2;
     const STATUS_WAIT = 'wait';
     const STATUS_DONE = 'done';
 

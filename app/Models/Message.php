@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Message extends Model
 {
 
-    const IS_VIEW_VIEWD = 2;
-    const IS_VIEW_UNVIEWD = 1;
+    const VIEWED = 2;
+    const UNVIEWD = 1;
 
     use HasFactory;
 

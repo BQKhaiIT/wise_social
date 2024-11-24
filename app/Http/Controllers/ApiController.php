@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Helpers\ApiResponse;
+use App\Mail\InvalidLoginMail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class ApiController extends Controller
 {
@@ -71,14 +74,48 @@ class ApiController extends Controller
             'email' => $param['email'],
             'password' => $param['password']
         ];
+        $checkInvalidLogin = User::where('email', $param['email'])->first();
+        if ($checkInvalidLogin->login_fail > 6) {
+            return $this->apiResponse->UnAuthorization(message: trans('message.auth.login_limit_exceed'));
+        }
         if (Auth::attempt($crediticals)) {
             $user = Auth::user();
             $success = $user->createToken($user->id);
             return $this->apiResponse->success($success);
         } else {
-            return $this->apiResponse->UnAuthorization();
+            //Count login fail
+            $user = User::where('email', $param['email'])->first();
+            if ($user->login_fail <= 5) {
+                $loginFail = $user->login_fail + 1;
+                DB::table('users')->where('id', $user->id)->update([
+                    'login_fail' => $loginFail
+                ]);
+                return $this->apiResponse->UnAuthorization(message: trans('message.auth.invalid_login'));
+            } else {
+                //Send mail error
+                Mail::to($param['email'])->send(new InvalidLoginMail($user));
+                return $this->apiResponse->UnAuthorization(message: trans('message.auth.login_limit_exceed'));
+            }
         }
     }
+
+    public function unLock ($hashId) 
+    {
+        $users = User::select('id')->get();
+        $userId = 0;
+        foreach ($users as $user) {
+            if (md5($user->id) == $hashId) {
+                $userId = $user->id;
+            }
+        }
+        if ($userId !== 0) {
+            DB::table('users')->where('id', $userId)->update([
+                'login_fail' => 0
+            ]);
+            return redirect('http://localhost:5173/auth');
+        }
+    }
+
     public function testView () 
     {
         return $this->apiResponse->success([]);
