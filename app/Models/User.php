@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -54,4 +54,29 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+
+    /**
+     * Relationship fucntion get follower
+     *
+     * @return void
+     */
+    public function follower() 
+    {
+        return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
+        ->where('user_id', '<>', Auth::user()->id)
+        ->where('follow_id', Auth::user()->id);
+    }
+
+    
+    /**
+     * Relationship fucntion get following
+     *
+     * @return void
+     */
+    public function follows() 
+    {
+        return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
+        ->where('user_id', Auth::user()->id);
+    }
 }
