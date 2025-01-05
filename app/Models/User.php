@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -78,5 +79,9 @@ class User extends Authenticatable
     {
         return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
         ->where('user_id', Auth::user()->id);
+    }
+    public  function experiences()
+    {
+        return $this->hasMany('\App\Models\Experience', 'user_id', 'id');
     }
 }
