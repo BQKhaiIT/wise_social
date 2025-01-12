@@ -81,9 +81,9 @@ class UserController extends Controller
         if (!is_null($user->avatar)) {
             $folderAvatar = explode('@', $user->email);
             $user->avatar = url(
-                'avatars/' . $folderAvatar[0] . '/' .$user->avatar
+                'avatars/' . $folderAvatar[0] . '/' . $user->avatar
             );
-        }        
+        }
         return $this->apiResponse->success($user);
     }
 
@@ -98,7 +98,7 @@ class UserController extends Controller
     {
         $userId = Auth::id();
         $listFriend = DB::table('friends')
-        ->where('user_id', $userId)
+            ->where('user_id', $userId)
             ->select('friend_id')
             ->pluck('friend_id')->toArray();
         $listFriend[] = $userId;
@@ -117,7 +117,7 @@ class UserController extends Controller
                 if (!is_null($user->avatar)) {
                     $folderAvatar = explode('@', $user->email);
                     $user->avatar = url(
-                        'avatars/' . $folderAvatar[0] . '/' .$user->avatar
+                        'avatars/' . $folderAvatar[0] . '/' . $user->avatar
                     );
                 }
                 $txtExperience = '';
@@ -128,7 +128,7 @@ class UserController extends Controller
                     } else {
                         $txtExperience .= $experience->title;
                     }
-                    $i++;   
+                    $i++;
                 }
                 $user->experience = $this->truncateString($txtExperience, 20);
                 unset($user->experiences);
@@ -136,14 +136,15 @@ class UserController extends Controller
         }
         return $this->apiResponse->success($suggests);
     }
-    private function truncateString($string, $length, $append = '...') {
+    private function truncateString($string, $length, $append = '...')
+    {
         if (mb_strlen($string) > $length) {
             return mb_substr($string, 0, $length) . $append;
         }
         return $string;
     }
 
-    public function listFriendRequest () 
+    public function listFriendRequest()
     {
         $userId = Auth::id();
         //List request friend
@@ -151,7 +152,10 @@ class UserController extends Controller
             'experiences' => function ($experiencesQuery) {
                 return $experiencesQuery->select('id', 'user_id', 'title');
             }
-        ])->join('friends', 'users.id', 'friends.user_id'
+        ])->join(
+            'friends',
+            'users.id',
+            'friends.user_id'
         )->where('friends.friend_id', $userId)
             ->where('users.status', User::STATUS_ACTIVE)
             ->where('friends.approved', Friend::UN_APPROVED)
@@ -165,7 +169,7 @@ class UserController extends Controller
                 if (!is_null($user->avatar)) {
                     $folderAvatar = explode('@', $user->email);
                     $user->avatar = url(
-                        'avatars/' . $folderAvatar[0] . '/' .$user->avatar
+                        'avatars/' . $folderAvatar[0] . '/' . $user->avatar
                     );
                 }
                 $txtExperience = '';
@@ -176,7 +180,7 @@ class UserController extends Controller
                     } else {
                         $txtExperience .= $experience->title;
                     }
-                    $i++;   
+                    $i++;
                 }
                 $user->experience = $this->truncateString($txtExperience, 15);
                 $user->name = $this->truncateString($user->name, 10);
@@ -192,7 +196,8 @@ class UserController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function addFriend (Request  $request) {
+    public function addFriend(Request  $request)
+    {
         $params = $request->all();
         try {
             DB::beginTransaction();
@@ -217,14 +222,14 @@ class UserController extends Controller
         if ($param['type'] == 'accept') {
             //Appove
             return DB::table('friends')
-            ->where('id', $param['id'])
+                ->where('id', $param['id'])
                 ->update([
                     'approved' => Friend::APPROVED
                 ]);
         } else {
             //Removes
             return DB::table('friends')
-            ->where('id', $param['id'])
+                ->where('id', $param['id'])
                 ->delete();
         }
     }
@@ -272,6 +277,49 @@ class UserController extends Controller
         unset($user->experiences);
         return $this->apiResponse->success($user);
     }
+
+    public function search(Request $request)
+    {
+        $param = $request->all();
+        $users = User::with([
+            'experiences' => function ($experienceQuery) {
+                return $experienceQuery->select('id', 'user_id', 'title');
+            }
+        ])->select(
+            'id', 'name', 'email', 'avatar'
+        )->whereHas('experiences', function ($query) use ($param) {
+            return $query->where('title', 'like', '%' . $param['key-word'] . '%');
+        })->orWhere('name', 'like', '%' . $param['key-word'] . '%')
+            ->orWhere('email', 'like', '%' . $param['key-word'] . '%')
+            ->orderBy('id', 'DESC')
+            ->get();
+        if (count($users) > 0) {
+            foreach ($users as $user) {
+                $folderAvatar = null;
+                if (!is_null($user->avatar)) {
+                    $folderAvatar = explode('@', $user->email);
+                    $user->avatar = url(
+                        'avatars/' . $folderAvatar[0] . '/' . $user->avatar
+                    );
+                }
+                $txtExperience = '';
+                $i = 1;
+                foreach ($user->experiences as $experience) {
+                    if ($i < count($user->experiences)) {
+                        $txtExperience .= $experience->title . ', ';
+                    } else {
+                        $txtExperience .= $experience->title;
+                    }
+                    $i++;
+                }
+                $user->name = $this->truncateString($user->name, 100);
+                $user->experience = $this->truncateString($txtExperience, 100);
+                unset($user->experiences);   
+            }
+        }
+        return $this->apiResponse->success($users);
+    }
+
     /**
      * Show the form for editing the specified resource.
      *
